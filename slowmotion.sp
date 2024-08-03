@@ -5,7 +5,7 @@
 #include <sourcemod>
 #include "slowmotion"
 #undef REQUIRE_PLUGIN
-#include <eventqueuefix>
+#include <gamespeed>
 
 public Plugin		myinfo =
 {
@@ -16,28 +16,11 @@ public Plugin		myinfo =
 	url = ""
 };
 
-bool				g_bEventQueueFix;
-Handle				g_hPhysTimescale;
-float				g_fDefaultTimescale;
 GlobalForward		g_SlowMotionEnableForward;
 GlobalForward		g_SlowMotionDisableForward;
 
 public void			OnPluginStart()
 {
-	ConVar			hostTimescale;
-
-	g_bEventQueueFix = false;
-	g_hPhysTimescale = FindConVar(CVAR_PHYS_TIMESCALE_NAME);
-	hostTimescale = FindConVar("host_timescale");
-	if (null == hostTimescale)
-	{
-		SetFailState("Could not find host_timescale cvar.");
-	}
-	g_fDefaultTimescale = GetConVarFloat(hostTimescale);
-	if (null == g_hPhysTimescale)
-	{
-		SetFailState("Could not get handle for %s.", CVAR_PHYS_TIMESCALE_NAME);
-	}
 	RegConsoleCmd("+slowmotion", Command_EnableSlowMotion);
 	RegConsoleCmd("-slowmotion", Command_DisableSlowMotion);
 	g_SlowMotionEnableForward = CreateGlobalForward("OnSlowMotionEnable", ET_Ignore, Param_Cell);
@@ -46,7 +29,10 @@ public void			OnPluginStart()
 
 public void			OnAllPluginsLoaded()
 {
-	g_bEventQueueFix = LibraryExists("eventqueuefix");
+	if (!LibraryExists("gamespeed"))
+	{
+		SetFailState("Could not load gamespeed library.");
+	}
 }
 
 public APLRes		AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -58,42 +44,14 @@ public APLRes		AskPluginLoad2(Handle myself, bool late, char[] error, int err_ma
 	return (APLRes_Success);
 }
 
-/**
- * Set slow motion.
- * @param timescale	Timescale to set.
- * @return Non-zero on error.
- */
-int				SetTimescale(const float timescale)
-{
-	int				ret;
-	int				idx;
-
-	ret = 0;
-	idx = 1;
-	SetConVarFloat(g_hPhysTimescale, timescale);
-	while (MaxClients >= idx && 0 == ret)
-	{
-		if (IsClientInGame(idx) && !IsClientSourceTV(idx))
-		{
-			SetEntPropFloat(idx, Prop_Data, "m_flLaggedMovementValue", timescale);
-			if (g_bEventQueueFix)
-			{
-				ret = SetEventsTimescale(idx, timescale) ? ret : 1;
-			}
-		}
-		idx += 1;
-	}
-	return (ret);
-}
-
 any					Native_DisableSlowMotion(Handle plugin, int numParams)
 {
-	return SetTimescale(g_fDefaultTimescale);
+	return (SetGameSpeed(SLOWMOTION_DEFAULT_TIMESCALE_OFF));
 }
 
 any					Native_EnableSlowMotion(Handle plugin, int numParams)
 {
-	return SetTimescale(SLOWMOTION_DEFAULT_TIMESCALE_ON);
+	return (SetGameSpeed(SLOWMOTION_DEFAULT_TIMESCALE_ON));
 }
 
 /**
@@ -101,9 +59,9 @@ any					Native_EnableSlowMotion(Handle plugin, int numParams)
  * @param client	Client index.
  * @param args		Arguments (unused).
  */
-public Action			Command_EnableSlowMotion(const int client, const int args)
+public Action		Command_EnableSlowMotion(const int client, const int args)
 {
-	SetTimescale(SLOWMOTION_DEFAULT_TIMESCALE_ON);
+	SetGameSpeed(SLOWMOTION_DEFAULT_TIMESCALE_ON);
 	Call_StartForward(g_SlowMotionEnableForward);
 	Call_PushCell(client);
 	Call_Finish();
@@ -116,9 +74,9 @@ public Action			Command_EnableSlowMotion(const int client, const int args)
  * @param client	Client index.
  * @param args		Arguments (unused).
  */
-public Action			Command_DisableSlowMotion(const int client, const int args)
+public Action		Command_DisableSlowMotion(const int client, const int args)
 {
-	SetTimescale(g_fDefaultTimescale);
+	SetGameSpeed(SLOWMOTION_DEFAULT_TIMESCALE_OFF);
 	Call_StartForward(g_SlowMotionDisableForward);
 	Call_PushCell(client);
 	Call_Finish();

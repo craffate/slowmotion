@@ -4,13 +4,12 @@
 #if !defined SLOWMOTION_INC
 	#define SLOWMOTION_INC
 
-	#define SLOWMOTION_VERSION "1.0.0"
+	#define SLOWMOTION_VERSION "2.0.0"
 	#define SLOWMOTION_LIBRARY_NAME "slowmotion"
 	#define SLOWMOTION_FILE_NAME "slowmotion.smx"
 
-	#define CVAR_PHYS_TIMESCALE_NAME "phys_timescale"
-
 	#define SLOWMOTION_DEFAULT_TIMESCALE_ON 0.3
+	#define SLOWMOTION_DEFAULT_TIMESCALE_OFF 1.0
 
 public SharedPlugin		__pl_slowmotion =
 {
